@@ -1,0 +1,181 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+# Load necessary libraries
+library(readxl)
+library(Benchmarking)
+library(ggplot2)
+
+# Read in the data
+defenders_df <- read_excel("C:/Alexander/Master_of_Business_Analytics_Aston_University/Disertation/Analytics/DEA/RatioDataset.xlsx", sheet = "Defenders")
+midfielders_df <- read_excel("C:/Alexander/Master_of_Business_Analytics_Aston_University/Disertation/Analytics/DEA/RatioDataset.xlsx", sheet = "Midfielders")
+forwards_df <- read_excel("C:/Alexander/Master_of_Business_Analytics_Aston_University/Disertation/Analytics/DEA/RatioDataset.xlsx", sheet = "Forwards")
+
+```
+
+```{r}
+defenders_df
+midfielders_df
+forwards_df
+```
+DEA FUNCTION
+```{r}
+run_dea <- function(inputs, outputs) {
+  dea_result <- dea(X = inputs, Y = outputs, RTS = "crs", ORIENTATION = "in")
+  return(dea_result)
+}
+```
+
+DEFENDERS DEA ANALYSIS
+```{r}
+inputs_def <- as.matrix(defenders_df[, "Dummy Input"])
+outputs_def <- as.matrix(defenders_df[, c("Tackles+Interceptions_ratio", "Clearances_ratio", "Goals_Conceded_ratio")])
+
+dea_results_def <- run_dea(inputs_def, outputs_def)
+summary(dea_results_def)
+```
+MIDFIELDERS DEA ANALYSIS
+```{r}
+inputs_mf <- as.matrix(midfielders_df[, "Dummy Input"])
+outputs_mf <- as.matrix(midfielders_df[, c("PassCompleted_ratio", "KeyPass_ratio", "T+I_ratio")])
+
+dea_results_mf <- run_dea(inputs_mf, outputs_mf)
+summary(dea_results_mf)
+
+```
+FORWARDS DEA ANALYSIS
+```{r}
+inputs_fw <- as.matrix(forwards_df[, "Dummy Input"])
+outputs_fw <- as.matrix(forwards_df[, c("Goals_ratio", "Assists_ratio", "SCA_ratio")])
+
+dea_results_fw <- run_dea(inputs_fw, outputs_fw)
+summary(dea_results_fw)
+
+```
+VISUALISATION FUNCTION
+```{r}
+plot_efficiency_scores <- function(dea_results, position) {
+  efficiency_scores <- as.data.frame(dea_results$eff)
+  colnames(efficiency_scores) <- "Efficiency"
+  efficiency_scores$Player <- rownames(efficiency_scores)
+  
+  ggplot(data = efficiency_scores, aes(x = Player, y = Efficiency)) +
+    geom_bar(stat = "identity", fill = "orange") +
+    geom_text(aes(label = sprintf("%.4f", Efficiency)), vjust = -0.3, size = 3.5) +
+    labs(title = paste("DEA Efficiency Scores for", position, " "), x = position, y = "Efficiency") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+VISUALISATION
+```{r}
+plot_efficiency_scores(dea_results_def, "Defenders")
+```
+
+```{r}
+plot_efficiency_scores(dea_results_mf, "Midfielders")
+```
+
+```{r}
+plot_efficiency_scores(dea_results_fw, "Forwards")
+```
+
+```{r}
+efficiency_scores_def <- as.data.frame(dea_results_def$eff)
+colnames(efficiency_scores_def) <- "Efficiency"
+efficiency_scores_def$Player <- rownames(efficiency_scores_def)
+
+efficiency_scores_def$PlayerID <- 1:nrow(efficiency_scores_def)
+defenders_df$Player <- rownames(defenders_df)
+defenders_efficiency <- merge(defenders_df, efficiency_scores_def, by = "Player")
+
+# Add x and y metrics to the efficiency scores data frame
+defenders_efficiency$Clearances_ratio <- defenders_efficiency$Clearances_ratio
+defenders_efficiency$Tackles_Interceptions_ratio <- defenders_efficiency$`Tackles+Interceptions_ratio`
+
+# Identify efficient DMUs
+efficient_dm <- defenders_efficiency[defenders_efficiency$Efficiency == 1, ]
+
+# Plot efficiency frontier
+ggplot() +
+  geom_point(data = defenders_efficiency, aes(x = Clearances_ratio, y = Tackles_Interceptions_ratio), size = 3) +
+  geom_text(data = defenders_efficiency, aes(x = Clearances_ratio, y = Tackles_Interceptions_ratio, label = PlayerID), vjust = -0.5) +
+  geom_line(data = efficient_dm, aes(x = Clearances_ratio, y = Tackles_Interceptions_ratio), linetype = "dashed") +
+  labs(title = "Efficiency Frontier Plot for Defenders",
+       x = "Clearances Ratio",
+       y = "Tackles + Interceptions Ratio") +
+  theme_minimal()
+
+```
+
+```{r}
+# Example DEA results for midfielders
+efficiency_scores_mf <- as.data.frame(dea_results_mf$eff)
+colnames(efficiency_scores_mf) <- "Efficiency"
+efficiency_scores_mf$Player <- rownames(efficiency_scores_mf)
+
+# Create an anonymous identifier for players
+efficiency_scores_mf$PlayerID <- 1:nrow(efficiency_scores_mf)
+
+# Ensure column names match when merging
+midfielders_df$Player <- rownames(midfielders_df)
+
+# Merge with original data
+midfielders_efficiency <- merge(midfielders_df, efficiency_scores_mf, by = "Player")
+
+# Add x and y metrics to the efficiency scores data frame
+midfielders_efficiency$PassCompleted_ratio <- midfielders_efficiency$PassCompleted_ratio
+midfielders_efficiency$ChancesCreated_ratio <- midfielders_efficiency$ChancesCreated_ratio
+
+# Identify efficient DMUs
+efficient_dm <- midfielders_efficiency[midfielders_efficiency$Efficiency == 1, ]
+
+# Plot efficiency frontier
+ggplot() +
+  geom_point(data = midfielders_efficiency, aes(x = PassCompleted_ratio, y = ChancesCreated_ratio), size = 3) +
+  geom_text(data = midfielders_efficiency, aes(x = PassCompleted_ratio, y = ChancesCreated_ratio, label = PlayerID), vjust = -0.5) +
+  geom_line(data = efficient_dm, aes(x = PassCompleted_ratio, y = ChancesCreated_ratio), linetype = "dashed") +
+  labs(title = "Efficiency Frontier Plot for Midfielders",
+       x = "Pass Completed Ratio",
+       y = "Chances Created Ratio") +
+  theme_minimal()
+
+```
+```{r}
+# Example DEA results for forwards
+efficiency_scores_fw <- as.data.frame(dea_results_fw$eff)
+colnames(efficiency_scores_fw) <- "Efficiency"
+efficiency_scores_fw$Player <- rownames(efficiency_scores_fw)
+
+# Create an anonymous identifier for players
+efficiency_scores_fw$PlayerID <- 1:nrow(efficiency_scores_fw)
+
+# Ensure column names match when merging
+forwards_df$Player <- rownames(forwards_df)
+
+# Merge with original data
+forwards_efficiency <- merge(forwards_df, efficiency_scores_fw, by = "Player")
+
+# Add x and y metrics to the efficiency scores data frame
+forwards_efficiency$Goals_ratio <- forwards_efficiency$Goals_ratio
+forwards_efficiency$SOT_ratio <- forwards_efficiency$SOT_ratio
+
+# Identify efficient DMUs
+efficient_dm <- forwards_efficiency[forwards_efficiency$Efficiency == 1, ]
+
+# Plot efficiency frontier
+ggplot() +
+  geom_point(data = forwards_efficiency, aes(x = Goals_ratio, y = SOT_ratio), size = 3) +
+  geom_text(data = forwards_efficiency, aes(x = Goals_ratio, y = SOT_ratio, label = PlayerID), vjust = -0.5) +
+  geom_line(data = efficient_dm, aes(x = Goals_ratio, y = SOT_ratio), linetype = "dashed") +
+  labs(title = "Efficiency Frontier Plot for Forwards",
+       x = "Goals Ratio",
+       y = "Shots on Target Ratio") +
+  theme_minimal()
+
+```
+
