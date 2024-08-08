@@ -3,6 +3,7 @@ output:
   pdf_document: default
   html_document: default
 ---
+
 ```{r}
 # Load necessary libraries
 library(readxl)
@@ -21,7 +22,9 @@ defenders_df
 midfielders_df
 forwards_df
 ```
+
 DEA FUNCTION
+
 ```{r}
 run_dea <- function(inputs, outputs) {
   dea_result <- dea(X = inputs, Y = outputs, RTS = "crs", ORIENTATION = "in")
@@ -30,6 +33,7 @@ run_dea <- function(inputs, outputs) {
 ```
 
 DEFENDERS DEA ANALYSIS
+
 ```{r}
 inputs_def <- as.matrix(defenders_df[, "Dummy Input"])
 outputs_def <- as.matrix(defenders_df[, c("Tackles+Interceptions_ratio", "Clearances_ratio", "Goals_Conceded_ratio")])
@@ -37,7 +41,9 @@ outputs_def <- as.matrix(defenders_df[, c("Tackles+Interceptions_ratio", "Cleara
 dea_results_def <- run_dea(inputs_def, outputs_def)
 summary(dea_results_def)
 ```
+
 MIDFIELDERS DEA ANALYSIS
+
 ```{r}
 inputs_mf <- as.matrix(midfielders_df[, "Dummy Input"])
 outputs_mf <- as.matrix(midfielders_df[, c("PassCompleted_ratio", "KeyPass_ratio", "T+I_ratio")])
@@ -46,7 +52,9 @@ dea_results_mf <- run_dea(inputs_mf, outputs_mf)
 summary(dea_results_mf)
 
 ```
+
 FORWARDS DEA ANALYSIS
+
 ```{r}
 inputs_fw <- as.matrix(forwards_df[, "Dummy Input"])
 outputs_fw <- as.matrix(forwards_df[, c("Goals_ratio", "Assists_ratio", "SCA_ratio")])
@@ -55,7 +63,9 @@ dea_results_fw <- run_dea(inputs_fw, outputs_fw)
 summary(dea_results_fw)
 
 ```
+
 VISUALISATION FUNCTION
+
 ```{r}
 plot_efficiency_scores <- function(dea_results, position) {
   efficiency_scores <- as.data.frame(dea_results$eff)
@@ -72,6 +82,7 @@ plot_efficiency_scores <- function(dea_results, position) {
 ```
 
 VISUALISATION
+
 ```{r}
 plot_efficiency_scores(dea_results_def, "Defenders")
 ```
@@ -145,6 +156,7 @@ ggplot() +
   theme_minimal()
 
 ```
+
 ```{r}
 # Example DEA results for forwards
 efficiency_scores_fw <- as.data.frame(dea_results_fw$eff)
@@ -179,3 +191,43 @@ ggplot() +
 
 ```
 
+Sensitivity Analysis
+
+Function
+
+```{r}
+sensitivity_analysis <- function(inputs, outputs) {
+  variations <- seq(0.8, 1.2, by = 0.1) # Example variations
+  sensitivity_results <- list()
+  
+  for (var in variations) {
+    modified_inputs <- inputs * var
+    modified_outputs <- outputs * var
+    dea_result <- dea(X = modified_inputs, Y = modified_outputs, RTS = "crs", ORIENTATION = "in")
+    sensitivity_results[[paste0("Variation_", var)]] <- dea_result$eff
+  }
+  
+  return(sensitivity_results)
+}
+```
+
+Defenders
+
+```{r}
+sensitivity_results_def <- sensitivity_analysis(inputs_def, outputs_def)
+sensitivity_results_def
+```
+
+Midfielders
+
+```{r}
+sensitivity_results_mid <- sensitivity_analysis(inputs_mf, outputs_mf)
+sensitivity_results_mid
+```
+
+Forwards
+
+```{r}
+sensitivity_results_fw <- sensitivity_analysis(inputs_fw, outputs_fw)
+sensitivity_results_fw
+```
